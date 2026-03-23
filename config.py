@@ -11,7 +11,7 @@ APP_VERSION     = "2.0.0"
 APP_TAGLINE     = "Real-Time IoT Security & Forensic Intelligence"
 
 # ── Database ──────────────────────────────────────────────────────────────────
-DB_PATH         = os.environ.get("FDTP_DB_PATH", "fdtp.db")
+DB_PATH = os.environ.get("FDTP_DB_PATH", "/tmp/fdtp.db")
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 SECRET_KEY      = os.environ.get("FDTP_SECRET", "fdtp-secret-change-in-production")
