@@ -172,12 +172,27 @@ def bootstrap(uid: int, oid: int):
 fleet, twin_engine, forensic_engine, dev_manager, mqtt_info = bootstrap(user["id"], org_id)
 from mqtt_client import start_mqtt
 start_mqtt(forensic_engine)
-# ── Live data ─────────────────────────────────────────────────────────────────
-twins      = twin_engine.all_snapshots()
-all_alerts = db.fetch_alerts(org_id, limit=500)
-all_logs   = db.fetch_logs(org_id, limit=500)
-all_data   = db.fetch_device_data(org_id, limit=500)
-now_str    = datetime.now(IST).strftime("%H:%M:%S IST")
+
+# ── Live data (cached to prevent flickering) ──────────────────────────────────
+@st.cache_data(ttl=2)
+def get_live_data(oid):
+    return {
+        "twins": twin_engine.all_snapshots(),
+        "alerts": db.fetch_alerts(oid, limit=500),
+        "logs": db.fetch_logs(oid, limit=500),
+        "data": db.fetch_device_data(oid, limit=500),
+    }
+
+live = get_live_data(org_id)
+twins = live["twins"]
+all_alerts = live["alerts"]
+all_logs = live["logs"]
+all_data = live["data"]
+
+# Fixed timestamp (not updated on every rerun to prevent flickering)
+if "dashboard_time" not in st.session_state:
+    st.session_state.dashboard_time = datetime.now(IST).strftime("%H:%M:%S IST")
+now_str = st.session_state.dashboard_time
 
 total_alerts   = len(all_alerts)
 critical_count = len([a for a in all_alerts if a["severity"]=="CRITICAL"])
@@ -267,15 +282,12 @@ with tab_dash:
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
     # MQTT status banner
-   st.markdown("<div class='section-label'>MQTT Live Status</div>", unsafe_allow_html=True)
-   if mqtt_status.get("connected"):
-     st.success("✅ MQTT Connected — Receiving real sensor data")
-   else:
-     st.success("✅ MQTT Connected — Receiving real sensor data")
-   if mqtt_status.get("last_message"):
-     st.markdown("**Last Received Packet:**")
-     st.markdown("**Last Received Packet:**")
-   
+    st.markdown("<div class='section-label'>MQTT Live Status</div>", unsafe_allow_html=True)
+    if mqtt_status.get("connected"):
+        st.success("✅ MQTT Connected — Receiving real sensor data")
+    else:
+        st.warning("⚠️ MQTT Unavailable — Using simulator fallback")
+    
     # Recent alerts
     if all_alerts[:3]:
         st.markdown("<div class='section-label'>Recent Incidents</div>", unsafe_allow_html=True)
