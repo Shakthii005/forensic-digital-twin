@@ -168,7 +168,8 @@ def bootstrap(uid: int, oid: int):
     return fleet, twin_engine, forensic_eng, dev_mgr, mqtt_status
 
 fleet, twin_engine, forensic_engine, dev_manager, mqtt_info = bootstrap(user["id"], org_id)
-
+from mqtt_client import start_mqtt
+start_mqtt(forensic_eng)
 # ── Live data ─────────────────────────────────────────────────────────────────
 twins      = twin_engine.all_snapshots()
 all_alerts = db.fetch_alerts(org_id, limit=500)
