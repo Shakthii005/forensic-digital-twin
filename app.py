@@ -1,81 +1,81 @@
-"""
-app.py — Forensic Digital Twin Platform v2.0 SaaS
-Run: streamlit run app.py
-"""
-
-import time
-import os
-from datetime import datetime, timezone, timedelta
-
-# IST = UTC+5:30
-IST = timezone(timedelta(hours=5, minutes=30))
-
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
-from mqtt_client import start_mqtt
-from mqtt_client import start_mqtt, mqtt_status
-import database as db
-from auth import show_auth_page, get_current_user, logout, can
-from simulator import SimulatorFleet, DEVICE_PROFILES
-from twin import TwinEngine
-from forensic import ForensicEngine
-from mqtt_connector import DeviceManager, get_mqtt_setup_instructions
-import attacks
-from config import (APP_NAME, APP_VERSION, SIM_DEVICES, MQTT_BROKER,
+  """
+  app.py — Forensic Digital Twin Platform v2.0 SaaS
+  Run: streamlit run app.py
+  """
+  
+  import time
+  import os
+  from datetime import datetime, timezone, timedelta
+  
+  # IST = UTC+5:30
+  IST = timezone(timedelta(hours=5, minutes=30))
+  
+  import streamlit as st
+  import pandas as pd
+  import plotly.graph_objects as go
+  import plotly.express as px
+  from mqtt_client import start_mqtt
+  from mqtt_client import start_mqtt, mqtt_status
+  import database as db
+  from auth import show_auth_page, get_current_user, logout, can
+  from simulator import SimulatorFleet, DEVICE_PROFILES
+  from twin import TwinEngine
+  from forensic import ForensicEngine
+  from mqtt_connector import DeviceManager, get_mqtt_setup_instructions
+  import attacks
+  from config import (APP_NAME, APP_VERSION, SIM_DEVICES, MQTT_BROKER,
                     MQTT_PORT, REFRESH_INTERVAL)
-
-# ── Page config ───────────────────────────────────────────────────────────────
-st.set_page_config(
+  
+  # ── Page config ───────────────────────────────────────────────────────────────
+  st.set_page_config(
     page_title=f"FDTP — {APP_NAME}",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="collapsed",
-)
-
-# ── Init DB ───────────────────────────────────────────────────────────────────
-db.init_db()
-
-# ── Auth gate ─────────────────────────────────────────────────────────────────
-user = get_current_user()
-if not user:
+  )
+  
+  # ── Init DB ───────────────────────────────────────────────────────────────────
+  db.init_db()
+  
+  # ── Auth gate ─────────────────────────────────────────────────────────────────
+  user = get_current_user()
+  if not user:
     show_auth_page()
     st.stop()
-
-org_id = user["org_id"]
-
-# ── CSS ───────────────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-html,body,[class*="css"]{font-family:'Inter',sans-serif!important;background:#030712!important;color:#f9fafb!important;}
-.stApp{background:#030712!important;}
-[data-testid="stSidebar"]{display:none!important;}
-[data-testid="collapsedControl"]{display:none!important;}
-#MainMenu,header[data-testid="stHeader"],footer{display:none!important;}
-.block-container{padding-top:0!important;padding-left:2rem!important;padding-right:2rem!important;max-width:100%!important;}
-[data-testid="stMetric"]{display:none!important;}
-.stButton>button{background:#111827!important;color:#d1d5db!important;border:1px solid #1f2937!important;border-radius:8px!important;font-family:'Inter',sans-serif!important;font-size:13px!important;font-weight:500!important;}
-.stButton>button:hover{background:#1f2937!important;border-color:#6366f1!important;color:#a5b4fc!important;}
-.stSuccess{background:rgba(34,197,94,0.08)!important;border:1px solid rgba(34,197,94,0.2)!important;border-left:3px solid #22c55e!important;color:#86efac!important;border-radius:8px!important;}
-.stError{background:rgba(239,68,68,0.08)!important;border:1px solid rgba(239,68,68,0.2)!important;border-left:3px solid #ef4444!important;color:#fca5a5!important;border-radius:8px!important;}
-.stWarning{background:rgba(234,179,8,0.08)!important;border:1px solid rgba(234,179,8,0.2)!important;border-left:3px solid #eab308!important;color:#fde047!important;border-radius:8px!important;}
-.stInfo{background:rgba(99,102,241,0.08)!important;border:1px solid rgba(99,102,241,0.2)!important;border-left:3px solid #6366f1!important;color:#a5b4fc!important;border-radius:8px!important;}
-code,pre,.stCode{font-family:'JetBrains Mono',monospace!important;background:#111827!important;border:1px solid #1f2937!important;color:#6366f1!important;border-radius:6px!important;font-size:11px!important;}
-[data-baseweb="select"]>div{background:#111827!important;border-color:#1f2937!important;border-radius:8px!important;}
-[data-testid="stTextInput"]>div>div{background:#111827!important;border-color:#1f2937!important;border-radius:8px!important;color:#f9fafb!important;}
-hr{border-color:#111827!important;}
-[data-testid="stExpander"]{background:#0f172a!important;border:1px solid #1f2937!important;border-radius:8px!important;}
-::-webkit-scrollbar{width:4px;height:4px;}
-::-webkit-scrollbar-track{background:#030712;}
-::-webkit-scrollbar-thumb{background:#1f2937;border-radius:2px;}
-.section-label{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#374151;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #111827;}
-</style>
-""", unsafe_allow_html=True)
-
-# ── SCIF table helper ─────────────────────────────────────────────────────────
-def scif_table(headers, rows, col_colors=None, max_rows=100):
+  
+  org_id = user["org_id"]
+  
+  # ── CSS ───────────────────────────────────────────────────────────────────────
+  st.markdown("""
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  html,body,[class*="css"]{font-family:'Inter',sans-serif!important;background:#030712!important;color:#f9fafb!important;}
+  .stApp{background:#030712!important;}
+  [data-testid="stSidebar"]{display:none!important;}
+  [data-testid="collapsedControl"]{display:none!important;}
+  #MainMenu,header[data-testid="stHeader"],footer{display:none!important;}
+  .block-container{padding-top:0!important;padding-left:2rem!important;padding-right:2rem!important;max-width:100%!important;}
+  [data-testid="stMetric"]{display:none!important;}
+  .stButton>button{background:#111827!important;color:#d1d5db!important;border:1px solid #1f2937!important;border-radius:8px!important;font-family:'Inter',sans-serif!important;font-size:13px!important;font-weight:500!important;}
+  .stButton>button:hover{background:#1f2937!important;border-color:#6366f1!important;color:#a5b4fc!important;}
+  .stSuccess{background:rgba(34,197,94,0.08)!important;border:1px solid rgba(34,197,94,0.2)!important;border-left:3px solid #22c55e!important;color:#86efac!important;border-radius:8px!important;}
+  .stError{background:rgba(239,68,68,0.08)!important;border:1px solid rgba(239,68,68,0.2)!important;border-left:3px solid #ef4444!important;color:#fca5a5!important;border-radius:8px!important;}
+  .stWarning{background:rgba(234,179,8,0.08)!important;border:1px solid rgba(234,179,8,0.2)!important;border-left:3px solid #eab308!important;color:#fde047!important;border-radius:8px!important;}
+  .stInfo{background:rgba(99,102,241,0.08)!important;border:1px solid rgba(99,102,241,0.2)!important;border-left:3px solid #6366f1!important;color:#a5b4fc!important;border-radius:8px!important;}
+  code,pre,.stCode{font-family:'JetBrains Mono',monospace!important;background:#111827!important;border:1px solid #1f2937!important;color:#6366f1!important;border-radius:6px!important;font-size:11px!important;}
+  [data-baseweb="select"]>div{background:#111827!important;border-color:#1f2937!important;border-radius:8px!important;}
+  [data-testid="stTextInput"]>div>div{background:#111827!important;border-color:#1f2937!important;border-radius:8px!important;color:#f9fafb!important;}
+  hr{border-color:#111827!important;}
+  [data-testid="stExpander"]{background:#0f172a!important;border:1px solid #1f2937!important;border-radius:8px!important;}
+  ::-webkit-scrollbar{width:4px;height:4px;}
+  ::-webkit-scrollbar-track{background:#030712;}
+  ::-webkit-scrollbar-thumb{background:#1f2937;border-radius:2px;}
+  .section-label{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#374151;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #111827;}
+  </style>
+  """, unsafe_allow_html=True)
+  
+  # ── SCIF table helper ─────────────────────────────────────────────────────────
+  def scif_table(headers, rows, col_colors=None, max_rows=100):
     col_colors = col_colors or {}
     th = "".join(
         f"<th style='padding:10px 16px;text-align:left;font-family:Inter,sans-serif;"
@@ -103,16 +103,16 @@ def scif_table(headers, rows, col_colors=None, max_rows=100):
         f"<thead><tr>{th}</tr></thead><tbody>{tr}</tbody></table></div>",
         unsafe_allow_html=True
     )
-
-def sev_color(v): return {"CRITICAL":"#ef4444","HIGH":"#f97316","MEDIUM":"#eab308","LOW":"#22c55e"}.get(v.upper(),"#6b7280")
-def evt_color(v): return "#ef4444" if v.upper()=="ATTACK" else "#22c55e"
-def acc(_):   return "#a5b4fc"
-def dim(_):   return "#4b5563"
-def bright(_):return "#d1d5db"
-def hash_c(_):return "#374151"
-def bool_c(v):return "#22c55e" if v.upper() in ("no","false","0","clean","🟢 clean") else "#ef4444"
-
-def hero_card(col, label, value, sub, icon, border_color="#6366f1"):
+  
+  def sev_color(v): return {"CRITICAL":"#ef4444","HIGH":"#f97316","MEDIUM":"#eab308","LOW":"#22c55e"}.get(v.upper(),"#6b7280")
+  def evt_color(v): return "#ef4444" if v.upper()=="ATTACK" else "#22c55e"
+  def acc(_):   return "#a5b4fc"
+  def dim(_):   return "#4b5563"
+  def bright(_):return "#d1d5db"
+  def hash_c(_):return "#374151"
+  def bool_c(v):return "#22c55e" if v.upper() in ("no","false","0","clean","🟢 clean") else "#ef4444"
+  
+  def hero_card(col, label, value, sub, icon, border_color="#6366f1"):
     with col:
         st.markdown(
             f"<div style='background:#0f172a;border:1px solid #1f2937;"
@@ -126,10 +126,10 @@ def hero_card(col, label, value, sub, icon, border_color="#6366f1"):
             f"</div>",
             unsafe_allow_html=True
         )
-
-# ── Bootstrap (per-user session) ─────────────────────────────────────────────
-@st.cache_resource
-def bootstrap(uid: int, oid: int):
+  
+  # ── Bootstrap (per-user session) ─────────────────────────────────────────────
+  @st.cache_resource
+  def bootstrap(uid: int, oid: int):
     device_ids   = list(SIM_DEVICES.keys())
     twin_engine  = TwinEngine(device_ids)
     fleet        = SimulatorFleet(org_id=oid)
@@ -141,7 +141,7 @@ def bootstrap(uid: int, oid: int):
     )
     dev_mgr = DeviceManager(oid, lambda pkt: forensic_eng.process(pkt))
     fleet.on_packet = lambda pkt: forensic_eng.process({**pkt, "source": "simulator"})
-
+  
     # Start MQTT (fallback to simulator)
     mqtt_status = dev_mgr.start()
     if mqtt_status["mode"] == "simulation":
@@ -165,27 +165,27 @@ def bootstrap(uid: int, oid: int):
     # Register devices in DB
     for did, profile in SIM_DEVICES.items():
         db.register_device(oid, did, did, profile["location"], "simulator")
-
+  
     return fleet, twin_engine, forensic_eng, dev_mgr, mqtt_status
-
-fleet, twin_engine, forensic_engine, dev_manager, mqtt_info = bootstrap(user["id"], org_id)
-from mqtt_client import start_mqtt
-start_mqtt(forensic_engine)
-# ── Live data ─────────────────────────────────────────────────────────────────
-twins      = twin_engine.all_snapshots()
-all_alerts = db.fetch_alerts(org_id, limit=500)
-all_logs   = db.fetch_logs(org_id, limit=500)
-all_data   = db.fetch_device_data(org_id, limit=500)
-now_str    = datetime.now(IST).strftime("%H:%M:%S IST")
-
-total_alerts   = len(all_alerts)
-critical_count = len([a for a in all_alerts if a["severity"]=="CRITICAL"])
-high_count     = len([a for a in all_alerts if a["severity"]=="HIGH"])
-compromised    = sum(1 for t in twins if t["diverged"])
-
-# ── TOP NAV ───────────────────────────────────────────────────────────────────
-device_dots = ""
-for t in twins:
+  
+  fleet, twin_engine, forensic_engine, dev_manager, mqtt_info = bootstrap(user["id"], org_id)
+  from mqtt_client import start_mqtt
+  start_mqtt(forensic_engine)
+  # ── Live data ─────────────────────────────────────────────────────────────────
+  twins      = twin_engine.all_snapshots()
+  all_alerts = db.fetch_alerts(org_id, limit=500)
+  all_logs   = db.fetch_logs(org_id, limit=500)
+  all_data   = db.fetch_device_data(org_id, limit=500)
+  now_str    = datetime.now(IST).strftime("%H:%M:%S IST")
+  
+  total_alerts   = len(all_alerts)
+  critical_count = len([a for a in all_alerts if a["severity"]=="CRITICAL"])
+  high_count     = len([a for a in all_alerts if a["severity"]=="HIGH"])
+  compromised    = sum(1 for t in twins if t["diverged"])
+  
+  # ── TOP NAV ───────────────────────────────────────────────────────────────────
+  device_dots = ""
+  for t in twins:
     dot_color = "#ef4444" if t["diverged"] else "#22c55e"
     threat    = forensic_engine.latest_threat.get(t["device_id"], {})
     score     = threat.get("score", 0)
@@ -196,8 +196,8 @@ for t in twins:
         f"{t['device_id']} <span style='color:#374151;font-size:10px;"
         f"font-family:JetBrains Mono,monospace;'>[{score}]</span></span>"
     )
-
-mode_badge = (
+  
+  mode_badge = (
     f"<span style='font-size:11px;padding:3px 10px;border-radius:20px;"
     f"background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#22c55e;'>"
     f"● MQTT LIVE</span>"
@@ -205,12 +205,12 @@ mode_badge = (
     f"<span style='font-size:11px;padding:3px 10px;border-radius:20px;"
     f"background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);color:#6366f1;'>"
     f"◈ SIMULATION</span>"
-)
-
-role_color = {"admin":"#ef4444","analyst":"#f59e0b","viewer":"#22c55e"}.get(user["role"],"#6b7280")
-
-st.markdown(f"""
-<div style='position:sticky;top:0;z-index:999;background:rgba(3,7,18,0.97);
+  )
+  
+  role_color = {"admin":"#ef4444","analyst":"#f59e0b","viewer":"#22c55e"}.get(user["role"],"#6b7280")
+  
+  st.markdown(f"""
+  <div style='position:sticky;top:0;z-index:999;background:rgba(3,7,18,0.97);
      backdrop-filter:blur(12px);border-bottom:1px solid #1f2937;
      padding:0 2rem;display:flex;align-items:center;justify-content:space-between;
      height:56px;margin:-1rem -2rem 0;'>
@@ -233,28 +233,28 @@ st.markdown(f"""
           padding:3px 10px;border-radius:6px;border:1px solid {role_color}33;'>
       {user["full_name"] or user["username"]} · {user["role"].upper()}</span>
   </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ── Tabs ──────────────────────────────────────────────────────────────────────
-tabs = ["⬛  Dashboard", "📡  Forensic Logs", "🚨  Alerts",
+  </div>
+  """, unsafe_allow_html=True)
+  
+  # ── Tabs ──────────────────────────────────────────────────────────────────────
+  tabs = ["⬛  Dashboard", "📡  Forensic Logs", "🚨  Alerts",
         "🧠  AI Analysis", "⚔️  Attack Panel", "📡  Device Manager",
         "📁  Evidence Export"]
-if user["role"] == "admin":
+  if user["role"] == "admin":
     tabs.append("👥  User Management")
-
-tab_objects = st.tabs(tabs)
-(tab_dash, tab_logs, tab_alerts, tab_ai,
- tab_attack, tab_devices, tab_evidence, *extra_tabs) = tab_objects
-tab_users = extra_tabs[0] if extra_tabs else None
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# DASHBOARD
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab_dash:
+  
+  tab_objects = st.tabs(tabs)
+  (tab_dash, tab_logs, tab_alerts, tab_ai,
+  tab_attack, tab_devices, tab_evidence, *extra_tabs) = tab_objects
+  tab_users = extra_tabs[0] if extra_tabs else None
+  
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # DASHBOARD
+  # ═══════════════════════════════════════════════════════════════════════════════
+  with tab_dash:
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-label'>System Overview</div>", unsafe_allow_html=True)
-
+  
     c1,c2,c3,c4,c5,c6 = st.columns(6)
     hero_card(c1,"Assets Online",   len(twins),      "devices monitored",       "📡","#6366f1")
     hero_card(c2,"Total Alerts",    total_alerts,    "since session start",      "🚨","#ef4444" if total_alerts else "#22c55e")
@@ -262,9 +262,9 @@ with tab_dash:
     hero_card(c4,"High Severity",   high_count,      "requires attention",       "⚠️","#f97316" if high_count else "#6366f1")
     hero_card(c5,"Log Entries",     len(all_logs),   "forensic chain length",    "🔗","#6366f1")
     hero_card(c6,"Compromised",     compromised,     "twin divergence detected", "🔴","#ef4444" if compromised else "#22c55e")
-
+  
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
-
+  
     # MQTT status banner
    st.markdown("<div class='section-label'>MQTT Live Status</div>", unsafe_allow_html=True)
    if mqtt_status.get("connected"):
@@ -294,7 +294,7 @@ with tab_dash:
                 f"{a['severity']}</span></div>",
                 unsafe_allow_html=True
             )
-
+  
     # Device cards
     st.markdown("<div class='section-label'>Asset Telemetry</div>", unsafe_allow_html=True)
     dcols = st.columns(len(twins))
@@ -336,9 +336,9 @@ with tab_dash:
                 f"font-size:11px;font-weight:600;{bdg_cls}'>{badge}</span></div>",
                 unsafe_allow_html=True
             )
-
+  
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
-
+  
     # Temp chart
     st.markdown("<div class='section-label'>Temperature Feed — Live</div>", unsafe_allow_html=True)
     if all_data:
@@ -376,7 +376,7 @@ with tab_dash:
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Awaiting telemetry data…")
-
+  
     st.markdown("<div class='section-label'>Digital Twin Sync Status</div>", unsafe_allow_html=True)
     scif_table(
         headers=["ASSET","TEMP °C","HUMIDITY %","STATE","LAST NONCE","UPDATED AT","DIVERGED"],
@@ -391,11 +391,11 @@ with tab_dash:
                     3:bright, 4:hash_c, 5:dim,
                     6:lambda v:"#ef4444" if v=="YES" else "#22c55e"}
     )
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# FORENSIC LOGS
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab_logs:
+  
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # FORENSIC LOGS
+  # ═══════════════════════════════════════════════════════════════════════════════
+  with tab_logs:
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-label'>Blockchain-Style Forensic Log Chain</div>", unsafe_allow_html=True)
     logs = db.fetch_logs(org_id, limit=200)
@@ -436,11 +436,11 @@ with tab_logs:
                    l["hash_chain"][:38]+"…",l["timestamp"][:19]] for l in filtered[:100]],
             col_colors={0:acc, 1:evt_color, 2:bright, 3:hash_c, 4:dim}
         )
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ALERTS
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab_alerts:
+  
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # ALERTS
+  # ═══════════════════════════════════════════════════════════════════════════════
+  with tab_alerts:
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     alert_list = db.fetch_alerts(org_id, limit=300)
     if not alert_list:
@@ -490,11 +490,11 @@ with tab_alerts:
                    (a["detail"] or "")[:60],a["timestamp"][:19]] for a in alert_list[:100]],
             col_colors={0:acc, 1:lambda v:"#f97316", 2:sev_color, 3:bright, 4:dim}
         )
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# AI ANALYSIS
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab_ai:
+  
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # AI ANALYSIS
+  # ═══════════════════════════════════════════════════════════════════════════════
+  with tab_ai:
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-label'>LSTM Behavioral Models</div>", unsafe_allow_html=True)
     lstm_cols = st.columns(len(SIM_DEVICES))
@@ -547,11 +547,11 @@ with tab_ai:
             font=dict(color="#4b5563",family="Inter"),
             margin=dict(l=0,r=0,t=10,b=0), height=200)
         st.plotly_chart(fig_h, use_container_width=True)
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ATTACK PANEL
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab_attack:
+  
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # ATTACK PANEL
+  # ═══════════════════════════════════════════════════════════════════════════════
+  with tab_attack:
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     if not can(user, "simulate_attacks"):
         st.error("⛔ You don't have permission to simulate attacks. Contact your admin.")
@@ -587,14 +587,14 @@ with tab_attack:
                   ["L8","Forensic Log Chain","Retroactive log tampering","CRITICAL"]],
             col_colors={0:lambda v:"#a5b4fc",1:lambda v:"#d1d5db",2:lambda v:"#9ca3af",3:sev_color}
         )
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# DEVICE MANAGER
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab_devices:
+  
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # DEVICE MANAGER
+  # ═══════════════════════════════════════════════════════════════════════════════
+  with tab_devices:
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-label'>Device Manager</div>", unsafe_allow_html=True)
-
+  
     # Connection status card
     if mqtt_info["mode"] == "mqtt":
         st.success(f"✅ MQTT Connected — {mqtt_info['broker']}")
@@ -611,7 +611,7 @@ with tab_devices:
             f"</div></div>",
             unsafe_allow_html=True
         )
-
+  
     # Registered devices table
     st.markdown("<div class='section-label'>Registered Devices</div>", unsafe_allow_html=True)
     devices = db.get_devices(org_id)
@@ -626,13 +626,13 @@ with tab_devices:
                         4:hash_c,
                         5:lambda v:"#22c55e" if v=="ACTIVE" else "#ef4444"}
         )
-
+  
     # MQTT setup instructions
     st.markdown("<div class='section-label'>Connect a Real Device</div>", unsafe_allow_html=True)
     sel_dev = st.selectbox("Select device to get setup instructions", list(SIM_DEVICES.keys()))
     instructions = get_mqtt_setup_instructions(sel_dev)
     st.code(instructions, language="bash")
-
+  
     # Add new device
     if can(user, "manage_devices"):
         st.markdown("<div class='section-label'>Register New Device</div>", unsafe_allow_html=True)
@@ -654,11 +654,11 @@ with tab_devices:
                     st.rerun()
                 else:
                     st.error("Device ID is required.")
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# EVIDENCE EXPORT
-# ═══════════════════════════════════════════════════════════════════════════════
-with tab_evidence:
+  
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # EVIDENCE EXPORT
+  # ═══════════════════════════════════════════════════════════════════════════════
+  with tab_evidence:
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
     if not can(user, "export_evidence"):
         st.error("⛔ You don't have permission to export evidence.")
@@ -695,15 +695,15 @@ with tab_evidence:
                       ["Integrity Seal","SHA-256 of entire PDF document"]],
                 col_colors={0:acc, 1:bright}
             )
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# USER MANAGEMENT (Admin only)
-# ═══════════════════════════════════════════════════════════════════════════════
-if tab_users and user["role"] == "admin":
+  
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # USER MANAGEMENT (Admin only)
+  # ═══════════════════════════════════════════════════════════════════════════════
+  if tab_users and user["role"] == "admin":
     with tab_users:
         st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
         st.markdown("<div class='section-label'>User Management</div>", unsafe_allow_html=True)
-
+  
         all_users = db.get_all_users(org_id)
         scif_table(
             headers=["ID","USERNAME","EMAIL","ROLE","FULL NAME","ACTIVE","CREATED","LAST LOGIN"],
@@ -719,7 +719,7 @@ if tab_users and user["role"] == "admin":
                 6:dim, 7:dim
             }
         )
-
+  
         st.markdown("<div class='section-label'>Add New User</div>", unsafe_allow_html=True)
         with st.form("add_user_form"):
             col1, col2 = st.columns(2)
@@ -746,7 +746,7 @@ if tab_users and user["role"] == "admin":
                         st.rerun()
                     else:
                         st.error(f"Failed: {result['error']}")
-
+  
         st.markdown("<div class='section-label'>Deactivate / Reactivate User</div>", unsafe_allow_html=True)
         col_uid, col_action = st.columns([1,1])
         with col_uid:
@@ -760,16 +760,16 @@ if tab_users and user["role"] == "admin":
                 db.toggle_user(int(toggle_uid), toggle_act=="Reactivate")
                 st.success(f"User {toggle_uid} {toggle_act.lower()}d.")
                 st.rerun()
-
-# ── Logout button ─────────────────────────────────────────────────────────────
-st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
-col_spacer, col_logout = st.columns([8, 1])
-with col_logout:
+  
+  # ── Logout button ─────────────────────────────────────────────────────────────
+  st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
+  col_spacer, col_logout = st.columns([8, 1])
+  with col_logout:
     if st.button("Sign Out"):
         logout()
-
-# ── Auto refresh ──────────────────────────────────────────────────────────────
-auto_r = st.sidebar.toggle("Auto-refresh", value=True)
-if auto_r:
+  
+  # ── Auto refresh ──────────────────────────────────────────────────────────────
+  auto_r = st.sidebar.toggle("Auto-refresh", value=True)
+  if auto_r:
     time.sleep(REFRESH_INTERVAL)
     st.rerun()
