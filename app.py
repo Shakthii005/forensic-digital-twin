@@ -15,6 +15,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from mqtt_client import start_mqtt
+from mqtt_client import start_mqtt, mqtt_status
 import database as db
 from auth import show_auth_page, get_current_user, logout, can
 from simulator import SimulatorFleet, DEVICE_PROFILES
@@ -265,11 +266,15 @@ with tab_dash:
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
     # MQTT status banner
-    if mqtt_info["mode"] == "mqtt":
-        st.success(f"✅ Connected to MQTT broker at {mqtt_info['broker']} — receiving live device data")
-    else:
-        st.info(f"◈ Running in simulation mode — {mqtt_info.get('error','MQTT broker not configured')} — Go to Device Manager to connect real sensors")
-
+   st.markdown("<div class='section-label'>MQTT Live Status</div>", unsafe_allow_html=True)
+   if mqtt_status.get("connected"):
+     st.success("✅ MQTT Connected — Receiving real sensor data")
+   else:
+     st.success("✅ MQTT Connected — Receiving real sensor data")
+   if mqtt_status.get("last_message"):
+     st.markdown("**Last Received Packet:**")
+     st.markdown("**Last Received Packet:**")
+   
     # Recent alerts
     if all_alerts[:3]:
         st.markdown("<div class='section-label'>Recent Incidents</div>", unsafe_allow_html=True)
