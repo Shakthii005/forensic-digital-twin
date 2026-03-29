@@ -68,13 +68,14 @@ class MQTTConnector:
         self.status = MQTTStatus.CONNECTING
 
         client = mqtt.Client(client_id=f"fdtp-{self.org_id}-{uuid.uuid4().hex[:8]}")
+        transport="websockets" 
 
         if MQTT_USERNAME:
             client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
 
         if MQTT_TLS:
             client.tls_set()
-
+        client.ws_set_options(path="/mqtt")
         client.on_connect    = self._on_connect
         client.on_disconnect = self._on_disconnect
         client.on_message    = self._on_message
