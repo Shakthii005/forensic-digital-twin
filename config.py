@@ -24,7 +24,7 @@ MQTT_PORT       = int(os.environ.get("FDTP_MQTT_PORT","8884")
 MQTT_USERNAME   = os.environ.get("FDTP_MQTT_USER", "")
 MQTT_PASSWORD   = os.environ.get("FDTP_MQTT_PASS", "")
 MQTT_TOPIC_BASE = "fdtp/devices"          # devices publish to fdtp/devices/{device_id}
-MQTT_TLS        = True
+MQTT_TLS        = os.environ.get("FDTP_MQTT_TLS", "false").lower() == "true"
 
 # ── Simulator ─────────────────────────────────────────────────────────────────
 SIM_INTERVAL    = 2.0    # seconds between simulated packets
