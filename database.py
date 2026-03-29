@@ -7,7 +7,7 @@ import sqlite3
 import threading
 import hashlib
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 DB_PATH = "logs.db"
 #from config import DB_PATH
 
@@ -398,3 +398,52 @@ def fetch_all_twins(org_id: int):
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
     return rows
+
+
+def get_attack_stats(org_id: int, hours: int = 24) -> dict:
+    """Get attack statistics for the last N hours."""
+    conn = get_conn()
+    c = conn.cursor()
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+    
+    c.execute("""
+        SELECT attack_type, COUNT(*) as count, MAX(severity) as max_severity
+        FROM alerts WHERE org_id=? AND timestamp > ?
+        GROUP BY attack_type
+    """, (org_id, cutoff))
+    
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_device_health(org_id: int, device_id: str) -> dict:
+    """Get health metrics for a specific device."""
+    conn = get_conn()
+    c = conn.cursor()
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    
+    # Count packets
+    c.execute("""
+        SELECT COUNT(*) as total, SUM(is_attack) as attacks
+        FROM device_data WHERE org_id=? AND device_id=? AND timestamp > ?
+    """, (org_id, device_id, cutoff))
+    
+    counts = dict(c.fetchone() or {})
+    
+    # Get latest temp/humidity
+    c.execute("""
+        SELECT temp, humidity FROM device_data
+        WHERE org_id=? AND device_id=? ORDER BY id DESC LIMIT 1
+    """, (org_id, device_id))
+    
+    latest = dict(c.fetchone() or {})
+    conn.close()
+    
+    return {
+        "device_id": device_id,
+        "packets_1h": counts.get("total", 0),
+        "attacks_1h": counts.get("attacks", 0),
+        "last_temp": latest.get("temp"),
+        "last_humidity": latest.get("humidity"),
+    }
