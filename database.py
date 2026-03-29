@@ -8,6 +8,7 @@ import threading
 import hashlib
 import os
 from datetime import datetime, timezone
+DB_PATH = "logs.db"
 #from config import DB_PATH
 
 _lock = threading.Lock()
