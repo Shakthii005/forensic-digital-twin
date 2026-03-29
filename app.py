@@ -14,7 +14,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-
+from mqtt_client import start_mqtt
 import database as db
 from auth import show_auth_page, get_current_user, logout, can
 from simulator import SimulatorFleet, DEVICE_PROFILES
