@@ -270,10 +270,10 @@ with tab_dash:
    if mqtt_status.get("connected"):
      st.success("✅ MQTT Connected — Receiving real sensor data")
    else:
-     st.success("✅ MQTT Connected — Receiving real sensor data")
+     st.error("❌ MQTT Not Connected")
    if mqtt_status.get("last_message"):
      st.markdown("**Last Received Packet:**")
-     st.markdown("**Last Received Packet:**")
+     st.json(mqtt_status["last_message"])
    
     # Recent alerts
     if all_alerts[:3]:
