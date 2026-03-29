@@ -141,12 +141,33 @@ class MQTTConnector:
             self.error_msg = "Unexpected disconnection"
 
     def _on_message(self, client, userdata, msg):
+        """Process arriving MQTT message with full validation."""
         try:
             payload = json.loads(msg.payload.decode("utf-8"))
 
             # Validate required fields
             required = {"device_id","temp","humidity","timestamp","nonce","hash","signature"}
             if not required.issubset(payload.keys()):
+                return
+
+            # ESP32/DHT22 sensor range validation
+            temp = payload.get("temp")
+            humidity = payload.get("humidity")
+            
+            # DHT22: temp -40°C to 80°C, humidity 0-100%
+            if not isinstance(temp, (int, float)) or not (-40 <= temp <= 80):
+                return  # Invalid temperature range
+            if not isinstance(humidity, (int, float)) or not (0 <= humidity <= 100):
+                return  # Invalid humidity range
+
+            # Validate timestamp format
+            try:
+                datetime.fromisoformat(payload["timestamp"].replace('Z', '+00:00'))
+            except Exception:
+                return
+
+            # Validate nonce is non-empty string
+            if not isinstance(payload.get("nonce"), str) or len(payload["nonce"]) < 8:
                 return
 
             # Add source tag
@@ -156,7 +177,11 @@ class MQTTConnector:
             if self.on_packet:
                 self.on_packet(payload)
 
+        except json.JSONDecodeError:
+            # Silently ignore malformed JSON
+            pass
         except Exception:
+            # Ignore any other processing errors
             pass
 
 
@@ -207,12 +232,49 @@ client.publish("{topic}", json.dumps(payload))
 """
 
 
+def validate_esp32_payload(payload: dict) -> tuple:
+    """
+    Validate an ESP32/DHT22 sensor payload.
+    Returns (is_valid: bool, error_msg: str)
+    """
+    # Check temp range (DHT22: -40 to 80°C)
+    temp = payload.get("temp")
+    if not isinstance(temp, (int, float)):
+        return False, "temp must be numeric"
+    if not (-40 <= temp <= 80):
+        return False, f"temp {temp}°C outside DHT22 range [-40, 80]"
+
+    # Check humidity range (DHT22: 0-100%)
+    humidity = payload.get("humidity")
+    if not isinstance(humidity, (int, float)):
+        return False, "humidity must be numeric"
+    if not (0 <= humidity <= 100):
+        return False, f"humidity {humidity}% outside DHT22 range [0, 100]"
+
+    # Check timestamp
+    timestamp = payload.get("timestamp")
+    if not isinstance(timestamp, str):
+        return False, "timestamp must be ISO-8601 string"
+    try:
+        datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+    except Exception:
+        return False, f"timestamp '{timestamp}' not ISO-8601 format"
+
+    # Check device_id
+    device_id = payload.get("device_id")
+    if not isinstance(device_id, str) or len(device_id) < 1:
+        return False, "device_id must be non-empty string"
+
+    return True, "OK"
+
+
 # ── Hybrid manager ────────────────────────────────────────────────────────────
 
 class DeviceManager:
     """
     Manages both real (MQTT) and simulated devices.
     Automatically uses simulation for devices without MQTT connection.
+    Supports ESP32 + DHT22 real sensor telemetry via MQTT.
     """
 
     def __init__(self, org_id: int, on_packet: Callable):
