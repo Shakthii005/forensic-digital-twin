@@ -323,7 +323,7 @@ with tab_dash:
     if all_data:
         df = pd.DataFrame(all_data)
         df["timestamp"] = pd.to_datetime(df["timestamp"], errors='coerce', utc=True)
-        df = df.dropna(subset=["timestamp"]
+        df = df.dropna(subset=["timestamp"])
         df = df.sort_values("timestamp")
         palette = {"IoT_1":"#6366f1","IoT_2":"#22c55e","IoT_3":"#f59e0b"}
         fig = go.Figure()
