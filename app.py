@@ -145,7 +145,22 @@ def bootstrap(uid: int, oid: int):
     mqtt_status = dev_mgr.start()
     if mqtt_status["mode"] == "simulation":
         fleet.launch()
-
+    else:
+    # MQTT connected - only simulate IoT_2 and IoT_3
+    # IoT_1 is real sensor - do NOT simulate it
+      from simulator import DeviceSimulator, DEVICE_PROFILES
+      import time, threading
+      def launch_sim_only(exclude_ids):
+          for dev_id, profile in DEVICE_PROFILES.items():
+              if dev_id not in exclude_ids:
+                  sim = DeviceSimulator(
+                      device_id=dev_id,
+                      profile=profile,
+                      on_packet=fleet.on_packet,
+                  )
+                  fleet.devices[dev_id] = sim
+                  sim.start()
+      launch_sim_only(exclude_ids=["IoT_1"])
     # Register devices in DB
     for did, profile in SIM_DEVICES.items():
         db.register_device(oid, did, did, profile["location"], "simulator")
