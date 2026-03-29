@@ -17,9 +17,13 @@ def start_mqtt(forensic_engine):
             print("MQTT Error:", e)
 
     client = mqtt.Client()
-    client.connect("broker.hivemq.com", 8883, 60)
+
+    # 🔥 THIS LINE WAS MISSING
+    client.tls_set()
 
     client.on_connect = on_connect
     client.on_message = on_message
+
+    client.connect("broker.hivemq.com", 8883, 60)
 
     client.loop_start()
