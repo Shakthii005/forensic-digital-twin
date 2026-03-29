@@ -2,6 +2,10 @@ import json
 import paho.mqtt.client as mqtt
 from forensic import ForensicEngine
 
+mqtt_status = {
+    "connected": False,
+    "last_message": None
+}
 def start_mqtt(forensic_engine):
 
     def on_connect(client, userdata, flags, rc):
@@ -12,6 +16,7 @@ def start_mqtt(forensic_engine):
         try:
             payload = json.loads(msg.payload.decode())
             print("Received:", payload)
+            mqtt_status["last_message"] = payload
             forensic_engine.process(payload)
         except Exception as e:
             print("MQTT Error:", e)
