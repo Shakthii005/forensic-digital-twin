@@ -144,7 +144,7 @@ def bootstrap(uid: int, oid: int):
     # Start MQTT (fallback to simulator)
     mqtt_status = dev_mgr.start()
     if mqtt_status["mode"] == "simulation":
-        fleet.launch()
+        #fleet.launch()
     else:
     # MQTT connected - only simulate IoT_2 and IoT_3
     # IoT_1 is real sensor - do NOT simulate it
