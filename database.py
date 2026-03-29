@@ -153,7 +153,20 @@ def _seed_defaults(c):
         INSERT INTO users (org_id, username, email, password_hash, role, full_name, created_at)
         VALUES (?,?,?,?,?,?,?)
     """, (org_id, "admin", "admin@fdtp.local", pw_hash, "admin", "Administrator", now))
-
+    # After seeding defaults, add this:
+def clean_duplicate_devices(org_id: int):
+    with _lock:
+        conn = get_conn()
+        conn.execute("""
+            DELETE FROM devices 
+            WHERE org_id=? AND source='simulator'
+            AND device_id IN (
+                SELECT device_id FROM devices 
+                WHERE org_id=? AND source='mqtt'
+            )
+        """, (org_id, org_id))
+        conn.commit()
+        conn.close()
 
 def _hash_password(password: str) -> str:
     import hashlib, os
