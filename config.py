@@ -19,12 +19,12 @@ SESSION_TIMEOUT = 3600   # seconds (1 hour)
 BCRYPT_ROUNDS   = 12
 
 # ── MQTT ──────────────────────────────────────────────────────────────────────
-MQTT_BROKER     = os.environ.get("FDTP_MQTT_BROKER", "broker.hivemq.com")
-MQTT_PORT       = int(os.environ.get("FDTP_MQTT_PORT", "1883"))
+MQTT_BROKER     = os.environ.get("broker.hivemq.com")
+MQTT_PORT       = int(os.environ.get(8884
 MQTT_USERNAME   = os.environ.get("FDTP_MQTT_USER", "")
 MQTT_PASSWORD   = os.environ.get("FDTP_MQTT_PASS", "")
 MQTT_TOPIC_BASE = "fdtp/devices"          # devices publish to fdtp/devices/{device_id}
-MQTT_TLS        = os.environ.get("FDTP_MQTT_TLS", "false").lower() == "true"
+MQTT_TLS        = True
 
 # ── Simulator ─────────────────────────────────────────────────────────────────
 SIM_INTERVAL    = 2.0    # seconds between simulated packets
