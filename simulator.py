@@ -191,6 +191,7 @@ class SimulatorFleet:
         self.org_id    = org_id
 
     def launch(self):
+        """Start all device simulators."""
         for dev_id, profile in DEVICE_PROFILES.items():
             sim = DeviceSimulator(
                 device_id=dev_id,
@@ -198,6 +199,23 @@ class SimulatorFleet:
                 on_packet=self.on_packet,
             )
             self.devices[dev_id] = sim
+            sim.start()
+
+    def inject(self, device_id: str, attack: str):
+        """Inject an attack on a specific device."""
+        if device_id in self.devices:
+            self.devices[device_id].inject_attack(attack)
+
+    def get_public_key(self, device_id: str):
+        """Retrieve device's public key for signature verification."""
+        if device_id in self.devices:
+            return self.devices[device_id].public_key
+        return None
+
+    def stop_all(self):
+        """Stop all simulators."""
+        for sim in self.devices.values():
+            sim.stop()
             sim.start()
 
     def inject(self, device_id: str, attack: str):
