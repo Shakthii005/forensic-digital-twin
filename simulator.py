@@ -170,18 +170,6 @@ class DeviceSimulator:
             if self.on_packet:
                 self.on_packet(pkt)
 
-            db.insert_device_data({
-                "device_id":    self.device_id,
-                "temp":         pkt["temp"],
-                "humidity":     pkt["humidity"],
-                "device_state": pkt["state"],
-                "timestamp":    pkt["timestamp"],
-                "nonce":        pkt["nonce"],
-                "hash":         pkt["hash"],
-                "signature":    pkt["signature"],
-                "is_attack":    1 if attack else 0,
-            })
-
             time.sleep(self.interval)
 
     def start(self):
@@ -197,9 +185,10 @@ class DeviceSimulator:
 class SimulatorFleet:
     """Manages all device simulators and routes packets to the forensic engine."""
 
-    def __init__(self, on_packet: Callable = None):
+    def __init__(self, on_packet: Callable = None, org_id: int = 1):
         self.devices: Dict[str, DeviceSimulator] = {}
         self.on_packet = on_packet
+        self.org_id    = org_id
 
     def launch(self):
         for dev_id, profile in DEVICE_PROFILES.items():
