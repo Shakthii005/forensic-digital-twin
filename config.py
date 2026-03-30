@@ -1,8 +1,6 @@
 """
 config.py — Central configuration for Forensic Digital Twin SaaS Platform
-Edit these values to configure your deployment.
 """
-
 import os
 
 # ── Application ───────────────────────────────────────────────────────────────
@@ -11,23 +9,25 @@ APP_VERSION     = "2.0.0"
 APP_TAGLINE     = "Real-Time IoT Security & Forensic Intelligence"
 
 # ── Database ──────────────────────────────────────────────────────────────────
-DB_PATH         = os.environ.get("FDTP_DB_PATH", "fdtp.db")
+DB_PATH         = os.environ.get("FDTP_DB_PATH", "/tmp/fdtp.db")
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 SECRET_KEY      = os.environ.get("FDTP_SECRET", "fdtp-secret-change-in-production")
-SESSION_TIMEOUT = 3600   # seconds (1 hour)
+SESSION_TIMEOUT = 3600
 BCRYPT_ROUNDS   = 12
 
 # ── MQTT ──────────────────────────────────────────────────────────────────────
-MQTT_BROKER     = os.environ.get("FDTP_MQTT_BROKER", "localhost")
+# Using port 1883 — standard MQTT (works on local machine)
+# ESP32 also uses port 1883 — both connect to same HiveMQ broker
+MQTT_BROKER     = os.environ.get("FDTP_MQTT_BROKER", "broker.hivemq.com")
 MQTT_PORT       = int(os.environ.get("FDTP_MQTT_PORT", "1883"))
 MQTT_USERNAME   = os.environ.get("FDTP_MQTT_USER", "")
 MQTT_PASSWORD   = os.environ.get("FDTP_MQTT_PASS", "")
-MQTT_TOPIC_BASE = "fdtp/devices"          # devices publish to fdtp/devices/{device_id}
+MQTT_TOPIC_BASE = "fdtp/devices"
 MQTT_TLS        = os.environ.get("FDTP_MQTT_TLS", "false").lower() == "true"
 
 # ── Simulator ─────────────────────────────────────────────────────────────────
-SIM_INTERVAL    = 2.0    # seconds between simulated packets
+SIM_INTERVAL    = 2.0
 SIM_DEVICES     = {
     "IoT_1": {"base_temp": 28.0, "base_humidity": 55.0, "location": "Server Room A"},
     "IoT_2": {"base_temp": 22.0, "base_humidity": 45.0, "location": "Lab B"},
@@ -35,13 +35,13 @@ SIM_DEVICES     = {
 }
 
 # ── Forensic thresholds ───────────────────────────────────────────────────────
-NONCE_WINDOW_SEC       = 120
-ZSCORE_THRESHOLD       = 3.0
-RATE_OF_CHANGE_LIMIT   = 8.0
-ANOMALY_WINDOW         = 20
-LSTM_ANOMALY_MULT      = 2.8
-FINGERPRINT_MIN_SAMPLES= 30
-FINGERPRINT_Z_THRESH   = 3.5
+NONCE_WINDOW_SEC        = 120
+ZSCORE_THRESHOLD        = 3.0
+RATE_OF_CHANGE_LIMIT    = 8.0
+ANOMALY_WINDOW          = 20
+LSTM_ANOMALY_MULT       = 2.8
+FINGERPRINT_MIN_SAMPLES = 30
+FINGERPRINT_Z_THRESH    = 3.5
 
 # ── User roles ────────────────────────────────────────────────────────────────
 ROLE_ADMIN   = "admin"
@@ -55,6 +55,6 @@ ROLE_PERMISSIONS = {
 }
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
-REFRESH_INTERVAL = 3     # seconds
+REFRESH_INTERVAL = 3
 MAX_CHART_POINTS = 100
 MAX_TABLE_ROWS   = 200
