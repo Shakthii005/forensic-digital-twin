@@ -1,4 +1,3 @@
-
 """
 app.py — Forensic Digital Twin Platform v2.0 SaaS
 Run: streamlit run app.py
@@ -15,8 +14,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-from mqtt_client import start_mqtt
-from mqtt_client import start_mqtt, mqtt_status
+
 import database as db
 from auth import show_auth_page, get_current_user, logout, can
 from simulator import SimulatorFleet, DEVICE_PROFILES
@@ -147,22 +145,7 @@ def bootstrap(uid: int, oid: int):
     mqtt_status = dev_mgr.start()
     if mqtt_status["mode"] == "simulation":
         fleet.launch()
-    else:
-    # MQTT connected - only simulate IoT_2 and IoT_3
-    # IoT_1 is real sensor - do NOT simulate it
-      from simulator import DeviceSimulator, DEVICE_PROFILES
-      import time, threading
-      def launch_sim_only(exclude_ids):
-          for dev_id, profile in DEVICE_PROFILES.items():
-              if dev_id not in exclude_ids:
-                  sim = DeviceSimulator(
-                      device_id=dev_id,
-                      profile=profile,
-                      on_packet=fleet.on_packet,
-                  )
-                  fleet.devices[dev_id] = sim
-                  sim.start()
-      launch_sim_only(exclude_ids=["IoT_1"])
+
     # Register devices in DB
     for did, profile in SIM_DEVICES.items():
         db.register_device(oid, did, did, profile["location"], "simulator")
@@ -170,29 +153,13 @@ def bootstrap(uid: int, oid: int):
     return fleet, twin_engine, forensic_eng, dev_mgr, mqtt_status
 
 fleet, twin_engine, forensic_engine, dev_manager, mqtt_info = bootstrap(user["id"], org_id)
-from mqtt_client import start_mqtt
-start_mqtt(forensic_engine)
 
-# ── Live data (cached to prevent flickering) ──────────────────────────────────
-@st.cache_data(ttl=2)
-def get_live_data(oid):
-    return {
-        "twins": twin_engine.all_snapshots(),
-        "alerts": db.fetch_alerts(oid, limit=500),
-        "logs": db.fetch_logs(oid, limit=500),
-        "data": db.fetch_device_data(oid, limit=500),
-    }
-
-live = get_live_data(org_id)
-twins = live["twins"]
-all_alerts = live["alerts"]
-all_logs = live["logs"]
-all_data = live["data"]
-
-# Fixed timestamp (not updated on every rerun to prevent flickering)
-if "dashboard_time" not in st.session_state:
-    st.session_state.dashboard_time = datetime.now(IST).strftime("%H:%M:%S IST")
-now_str = st.session_state.dashboard_time
+# ── Live data ─────────────────────────────────────────────────────────────────
+twins      = twin_engine.all_snapshots()
+all_alerts = db.fetch_alerts(org_id, limit=500)
+all_logs   = db.fetch_logs(org_id, limit=500)
+all_data   = db.fetch_device_data(org_id, limit=500)
+now_str    = datetime.now(IST).strftime("%H:%M:%S IST")
 
 total_alerts   = len(all_alerts)
 critical_count = len([a for a in all_alerts if a["severity"]=="CRITICAL"])
@@ -282,12 +249,11 @@ with tab_dash:
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
     # MQTT status banner
-    st.markdown("<div class='section-label'>MQTT Live Status</div>", unsafe_allow_html=True)
-    if mqtt_status.get("connected"):
-        st.success("✅ MQTT Connected — Receiving real sensor data")
+    if mqtt_info["mode"] == "mqtt":
+        st.success(f"✅ Connected to MQTT broker at {mqtt_info['broker']} — receiving live device data")
     else:
-        st.warning("⚠️ MQTT Unavailable — Using simulator fallback")
-    
+        st.info(f"◈ Running in simulation mode — {mqtt_info.get('error','MQTT broker not configured')} — Go to Device Manager to connect real sensors")
+
     # Recent alerts
     if all_alerts[:3]:
         st.markdown("<div class='section-label'>Recent Incidents</div>", unsafe_allow_html=True)
@@ -356,8 +322,7 @@ with tab_dash:
     st.markdown("<div class='section-label'>Temperature Feed — Live</div>", unsafe_allow_html=True)
     if all_data:
         df = pd.DataFrame(all_data)
-        df["timestamp"] = pd.to_datetime(df["timestamp"], errors='coerce', utc=True)
-        df = df.dropna(subset=["timestamp"])
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
         df = df.sort_values("timestamp")
         palette = {"IoT_1":"#6366f1","IoT_2":"#22c55e","IoT_3":"#f59e0b"}
         fig = go.Figure()
