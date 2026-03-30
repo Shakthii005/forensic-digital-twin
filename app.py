@@ -431,7 +431,8 @@ with tab_alerts:
         hero_card(c3,"High",len(df[df["severity"]=="HIGH"]),"investigate","⚠️","#f97316")
         hero_card(c4,"Attack Vectors",df["attack_type"].nunique(),"unique types","🎯","#6366f1")
         st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce", utc=True)
+        df = df.dropna(subset=["timestamp"])
         fig2 = px.scatter(df, x="timestamp", y="attack_type", color="severity",
             color_discrete_map={"CRITICAL":"#ef4444","HIGH":"#f97316","MEDIUM":"#eab308","LOW":"#22c55e"},
             symbol="device_id", hover_data=["detail","device_id"])
@@ -511,7 +512,8 @@ with tab_ai:
     if all_alerts:
         st.markdown("<div class='section-label'>Threat Heatmap</div>", unsafe_allow_html=True)
         dfa = pd.DataFrame(all_alerts)
-        dfa["timestamp"] = pd.to_datetime(dfa["timestamp"])
+        dfa["timestamp"] = pd.to_datetime(dfa["timestamp"], errors="coerce", utc=True)
+        dfa = dfa.dropna(subset=["timestamp"])
         dfa["minute"]    = dfa["timestamp"].dt.floor("1min").dt.strftime("%H:%M")
         dfa["sev_num"]   = dfa["severity"].map({"CRITICAL":4,"HIGH":3,"MEDIUM":2,"LOW":1}).fillna(1)
         pivot = dfa.groupby(["device_id","minute"])["sev_num"].max().reset_index()
@@ -652,7 +654,7 @@ with tab_evidence:
                     try:
                         from evidence_export import generate_evidence_pdf
                         out_path  = os.path.join(os.getcwd(), f"evidence_{case_id}.pdf")
-                        file_hash = generate_evidence_pdf(out_path, case_id=case_id, analyst=analyst)
+                        file_hash = generate_evidence_pdf(out_path, case_id=case_id, analyst=analyst, org_id=org_id)
                         with open(out_path,"rb") as f:
                             pdf_bytes = f.read()
                         st.success("✅ Evidence package generated.")
