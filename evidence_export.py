@@ -310,7 +310,7 @@ def _build_story(S, now_str, case_id, analyst, seal_hash, alerts_all, logs_all, 
 
 
 def generate_evidence_pdf(output_path: str, case_id: str = None,
-                          analyst: str = "System") -> str:
+                          analyst: str = "System", org_id: int = 1) -> str:
     if case_id is None:
         case_id = f"CASE-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
 
@@ -319,9 +319,9 @@ def generate_evidence_pdf(output_path: str, case_id: str = None,
     bg          = SCIFBackground(case_id)
 
     # Fetch data once — reused in both passes
-    alerts_all  = db.fetch_alerts(limit=500)
-    logs_all    = db.fetch_logs(limit=500)
-    raw_all     = db.fetch_device_data(limit=500)
+    alerts_all  = db.fetch_alerts(org_id=org_id, limit=500)
+    logs_all    = db.fetch_logs(org_id=org_id, limit=500)
+    raw_all     = db.fetch_device_data(org_id=org_id, limit=500)
 
     def _make_doc(path):
         return SimpleDocTemplate(
