@@ -11,7 +11,7 @@ APP_VERSION     = "2.0.0"
 APP_TAGLINE     = "Real-Time IoT Security & Forensic Intelligence"
 
 # ── Database ──────────────────────────────────────────────────────────────────
-DB_PATH = os.environ.get("FDTP_DB_PATH", "/tmp/fdtp.db")
+DB_PATH         = os.environ.get("FDTP_DB_PATH", "fdtp.db")
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 SECRET_KEY      = os.environ.get("FDTP_SECRET", "fdtp-secret-change-in-production")
@@ -19,12 +19,13 @@ SESSION_TIMEOUT = 3600   # seconds (1 hour)
 BCRYPT_ROUNDS   = 12
 
 # ── MQTT ──────────────────────────────────────────────────────────────────────
-MQTT_BROKER     = os.environ.get("FDTP_MQTT_BROKER","broker.hivemq.com")
-MQTT_PORT       = int(os.environ.get("FDTP_MQTT_PORT","8883"))
+MQTT_BROKER     = os.environ.get("FDTP_MQTT_BROKER", "localhost")
+MQTT_PORT       = int(os.environ.get("FDTP_MQTT_PORT", "1883"))
 MQTT_USERNAME   = os.environ.get("FDTP_MQTT_USER", "")
 MQTT_PASSWORD   = os.environ.get("FDTP_MQTT_PASS", "")
 MQTT_TOPIC_BASE = "fdtp/devices"          # devices publish to fdtp/devices/{device_id}
-MQTT_TLS        = True
+MQTT_TLS        = os.environ.get("FDTP_MQTT_TLS", "false").lower() == "true"
+
 # ── Simulator ─────────────────────────────────────────────────────────────────
 SIM_INTERVAL    = 2.0    # seconds between simulated packets
 SIM_DEVICES     = {
